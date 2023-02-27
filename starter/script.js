@@ -10,6 +10,16 @@ const btnsOpenModal = document.querySelectorAll('.btn--show-modal');
 const btnScrollTo = document.querySelector(`.btn--scroll-to`);
 const section1 = document.querySelector(`#section--1`);
 
+const header = document.querySelector(`.header`);
+const nav = document.querySelector(`.nav`);
+
+const tabs = document.querySelectorAll(`.operations__tab`);
+const tabContainer = document.querySelector(`.operations__tab-container`);
+const tabsContent = document.querySelectorAll(`.operations__content`);
+
+/* Selecting Elements */
+/* ************************************ */
+
 ///////////////////////////////////////
 // Modal window
 
@@ -106,11 +116,80 @@ navList.addEventListener('click', function (e) {
   }
 });
 
-// Tabbed Component
+// Menu Fade Animtion
 
-const tabs = document.querySelectorAll(`.operations__tab`);
-const tabContainer = document.querySelector(`.operations__tab-container`);
-const tabsContent = document.querySelectorAll(`.operations__content`);
+const fadingAnimation = (e, opacity) => {
+  if (e.classList.contains(`nav__link`)) {
+    const link = e;
+    const siblings = link.closest(`.nav`).querySelectorAll(`.nav__link`);
+    const logo = link.closest(`.nav`).querySelector(`.nav__logo`);
+    siblings.forEach((el, i) => {
+      if (el !== link) {
+        el.style.opacity = opacity;
+      }
+      logo.style.opacity = opacity;
+    });
+  }
+};
+
+nav.addEventListener(`mouseover`, function (e) {
+  fadingAnimation(e.target, 0.5);
+});
+
+nav.addEventListener(`mouseout`, function (e) {
+  fadingAnimation(e.target, 1);
+});
+
+// Implementing sicky navigation bar
+
+// Not a performnce efficent method
+// const initialCoords = section1.getBoundingClientRect();
+// // console.log(initialCoords);
+// window.addEventListener(`scroll`, function (e) {
+//   if (window.scrollY > initialCoords.top) {
+//     nav.classList.add(`sticky`);
+//   } else {
+//     nav.classList.remove(`sticky`);
+//   }
+// });
+
+// Sticky Navigation: Intersection Observer API
+
+// const obsCallback = function (entries, observer) {
+//   entries.forEach(entry => console.log(entry));
+// };
+// const obsOptions = {
+//   root: null,
+//   thershold: [0, 0.2],
+// };
+
+// const observer = new IntersectionObserver(obsCallback, obsOptions);
+// observer.observe(section1);
+
+const navHeight = nav.getBoundingClientRect().height;
+
+const stickyNav = entries => {
+  const [entry] = entries;
+  // console.log(entry);
+  if (!entry.isIntersecting) nav.classList.add(`sticky`);
+  else {
+    nav.classList.remove(`sticky`);
+  }
+};
+
+const headerObs = new IntersectionObserver(stickyNav, {
+  root: null,
+  threshold: 0,
+  rootMargin: `-${navHeight}px`,
+});
+headerObs.observe(header);
+
+// we can also do this
+
+// nav.addEventListener(`mouseover`, fadingAnimation.bind(0.5));
+// nav.addEventListener(`mouseout`, fadingAnimation.bind(1));
+
+// Tabbed Component
 
 // Using Event deligtion
 tabContainer.addEventListener(`click`, function (e) {
@@ -140,6 +219,138 @@ tabContainer.addEventListener(`click`, function (e) {
     .classList.add(`operations__content--active`);
 });
 
+// Lazy Image Loading
+
+// Reveal Sections
+
+const sections = document.querySelectorAll(`.section`);
+
+const sectionCallback = (entries, observer) => {
+  const [entry] = entries;
+  // console.log(entry);
+  if (!entry.isIntersecting) return;
+  entry.target.classList.remove(`section--hidden`);
+  observer.unobserve(entry.target);
+};
+const sectionObserver = new IntersectionObserver(sectionCallback, {
+  root: null,
+  threshold: 0.15,
+});
+
+sections.forEach(section => {
+  sectionObserver.observe(section);
+  section.classList.add(`section--hidden`);
+});
+
+// Lazy Images Loading
+const imgTargets = document.querySelectorAll(`img[data-src]`);
+// console.log(imgTargets);
+
+const loadImg = (entries, observer) => {
+  const [entry] = entries;
+  if (!entry.isIntersecting) return;
+  entry.target.src = entry.target.dataset.src;
+  entry.target.addEventListener('load', function () {
+    entry.target.classList.remove(`lazy-img`);
+  });
+  observer.unobserve(entry.target);
+};
+const imgObserver = new IntersectionObserver(loadImg, {
+  root: null,
+  threshold: 0,
+  rootMargin: `200px`,
+});
+
+imgTargets.forEach(img => {
+  imgObserver.observe(img);
+});
+
+// Slider Component
+const sliders = document.querySelectorAll(`.slide`);
+const rightBtn = document.querySelector(`.slider__btn--right`);
+const leftBtn = document.querySelector(`.slider__btn--left`);
+
+const dotContainer = document.querySelector(`.dots`);
+
+// Functions
+
+const createDots = function () {
+  sliders.forEach((slide, i) => {
+    dotContainer.insertAdjacentHTML(
+      `beforeend`,
+      `<button class="dots__dot" data-slide="${i}"></button>`
+    );
+  });
+};
+
+const activateDot = function (slide) {
+  console.log(slide);
+  document
+    .querySelectorAll(`.dots__dot`)
+    .forEach(dot => dot.classList.remove(`dots__dot--active`));
+
+  document
+    .querySelector(`.dots__dot[data-slide = "${slide}"]`)
+    .classList.add('dots__dot--active');
+};
+
+let currentSlide = 0;
+let maxSlides = sliders.length - 1;
+
+const gotoSlides = slide => {
+  sliders.forEach((slider, index) => {
+    slider.style.transform = `translateX(${100 * (index - slide)}%)`;
+  });
+};
+
+// Dots
+dotContainer.addEventListener(`click`, function (e) {
+  const clicked = e.target;
+  if (clicked.classList.contains(`dots__dot`)) {
+    const { slide } = e.target.dataset;
+    gotoSlides(slide);
+    activateDot(slide);
+  }
+});
+
+// Next Slide
+
+const nextSlide = () => {
+  if (currentSlide === maxSlides) {
+    currentSlide = 0;
+  } else {
+    currentSlide++;
+  }
+  gotoSlides(currentSlide);
+  activateDot(currentSlide);
+};
+
+const previousSlide = () => {
+  if (currentSlide === 0) {
+    currentSlide = maxSlides;
+  } else {
+    currentSlide--;
+  }
+  gotoSlides(currentSlide);
+  activateDot(currentSlide);
+};
+
+const init = function () {
+  gotoSlides(0);
+  createDots();
+  activateDot(0);
+};
+init();
+
+// Event Handlers
+rightBtn.addEventListener(`click`, nextSlide);
+
+leftBtn.addEventListener(`click`, previousSlide);
+
+document.addEventListener(`keydown`, function (e) {
+  if (e.key === `ArrowLeft`) previousSlide();
+  if (e.key === `ArrowRight`) nextSlide();
+});
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
